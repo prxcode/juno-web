@@ -38,3 +38,21 @@ Juno is a lightweight and user-friendly **online Java compiler** built with Reac
    ```bash
    git clone https://github.com/your-username/juno-online-java-compiler.git
    cd juno-online-java-compiler
+
+2. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+
+   ```bash
+   npm start
+   ```
+
+4. Open your browser and navigate to:
+
+   ```
+   http://localhost:3000
+   ```
