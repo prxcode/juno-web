@@ -19,7 +19,7 @@ Juno is a lightweight and user-friendly **online Java compiler** built with Reac
 
 ## Demo
 
-![Screenshot](./screenshot.png)  
+![Screenshot](./Screenshot.png)  
 *Add your screenshot image here*
 
 ---
