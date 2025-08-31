@@ -12,8 +12,8 @@ public class Main { //keep this as public class Main
 }
 `;
 
-// 👇 This picks your deployed Render backend in Vercel, or localhost during local dev
-const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
+// ✅ CHANGE THIS TO YOUR RENDER BACKEND URL
+const API_BASE = process.env.REACT_APP_API_BASE || 'https://your-render-backend.onrender.com';
 
 function toLines(s) {
   return (s || '').split(/\r?\n/);
@@ -33,7 +33,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
 
   const clsInfo = useMemo(() => detectPublicClass(code), [code]);
-  const fileName = `${(clsInfo.name || 'Main')}.java`;
+  const fileName = `${clsInfo.name || 'Main'}.java`;
 
   useEffect(() => {
     // Load code/input from share URL (if any)
