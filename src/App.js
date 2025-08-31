@@ -12,6 +12,7 @@ public class Main { //keep this as public class Main
 }
 `;
 
+// 👇 This picks your deployed Render backend in Vercel, or localhost during local dev
 const API_BASE = process.env.REACT_APP_API_BASE || 'http://localhost:5000';
 
 function toLines(s) {
@@ -19,7 +20,7 @@ function toLines(s) {
 }
 
 function detectPublicClass(src) {
-  const m = src.match(/public\\s+class\\s+(\\w+)/);
+  const m = src.match(/public\s+class\s+(\w+)/);
   const name = m ? m[1] : null;
   return { name, isMain: name === 'Main' };
 }
@@ -35,7 +36,7 @@ export default function App() {
   const fileName = `${(clsInfo.name || 'Main')}.java`;
 
   useEffect(() => {
-    // load share hash if present
+    // Load code/input from share URL (if any)
     if (location.hash.length > 1) {
       try {
         const json = JSON.parse(decodeURIComponent(atob(location.hash.slice(1))));
@@ -50,16 +51,18 @@ export default function App() {
     setOutput('');
     setError('');
     try {
-      const resp = await fetch(`${API_BASE}/runJava`, {
+      const response = await fetch(`${API_BASE}/runJava`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, inputs: toLines(inputs) })
+        body: JSON.stringify({ code, inputs: toLines(inputs) }),
       });
-      const data = await resp.json();
+
+      const data = await response.json();
+
       if (data.output) setOutput(data.output);
       if (data.error) setError(data.error);
     } catch (e) {
-      setError(e.message);
+      setError(`Error: ${e.message}`);
     } finally {
       setBusy(false);
     }
@@ -102,7 +105,9 @@ export default function App() {
           <div className="toolbar">
             <button className="btn" onClick={saveLocal}>Download Code</button>
             <button className="btn secondary" onClick={clearAll}>Clear</button>
-            <button className="btn run" onClick={run} disabled={busy}>{busy ? 'Running…' : 'Run'}</button>
+            <button className="btn run" onClick={run} disabled={busy}>
+              {busy ? 'Running…' : 'Run'}
+            </button>
           </div>
         </div>
 
@@ -122,12 +127,19 @@ export default function App() {
         <div className="stack">
           <div>
             <div className="subtle">Program input (multi-line):</div>
-            <textarea className="textarea" value={inputs} onChange={(e) => setInputs(e.target.value)} placeholder={`Input your data before running code`} />
+            <textarea
+              className="textarea"
+              value={inputs}
+              onChange={(e) => setInputs(e.target.value)}
+              placeholder="Input your data before running code"
+            />
           </div>
 
           <div>
             <div className="subtle">Output:</div>
-            <pre className={`output ${error ? 'error' : ''}`}>{error ? error : (output || '—')}</pre>
+            <pre className={`output ${error ? 'error' : ''}`}>
+              {error ? error : output || '—'}
+            </pre>
           </div>
 
           <footer>
