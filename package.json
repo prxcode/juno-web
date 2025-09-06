@@ -2,6 +2,7 @@
   "name": "online-java-compiler",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "axios": "^1.11.0",
@@ -10,12 +11,13 @@
     "react-scripts": "^5.0.1",
     "web-vitals": "^5.1.0"
   },
-    "engines": {
+  "engines": {
   "node": "18.x"
 },
+
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+  "build": "react-scripts build",
+  "start": "node server.js",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },

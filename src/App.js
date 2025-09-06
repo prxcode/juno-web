@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import CodeEditor from './CodeEditor';
+import CodeEditor from './CodeEditor.js';
 import './App.css';
 
 const DEFAULT_CODE = `// Online Java Compiler
