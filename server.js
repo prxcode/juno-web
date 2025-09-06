@@ -1,24 +1,16 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import runJavaHandler from './api/runJava.js';
+import http from 'http';
+import { runJavaHandler } from './api/runJava.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const server = http.createServer((req, res) => {
+  if (req.url === '/runJava' && req.method === 'POST') {
+    return runJavaHandler(req, res);
+  }
 
-const app = express();
-
-app.use(express.json());
-
-app.use(express.static(path.join(__dirname, 'build')));
-
-app.post('/api/runJava', runJavaHandler);
-
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, 'build', 'index.html'));
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Not Found' }));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 3001;
+server.listen(PORT, () => {
+  console.log(`Server is listening on port ${PORT}`);
 });
