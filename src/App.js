@@ -13,7 +13,7 @@ public class Main { //keep this as public class Main
 `;
 
 // ✅ CHANGE THIS TO YOUR RENDER BACKEND URL
-const API_BASE = process.env.REACT_APP_API_BASE || 'https://juno-web-yw3y.onrender.com';
+const API_BASE = process.env.REACT_APP_API_BASE || '/api';
 
 function toLines(s) {
   return (s || '').split(/\r?\n/);
@@ -42,7 +42,7 @@ export default function App() {
         const json = JSON.parse(decodeURIComponent(atob(location.hash.slice(1))));
         if (json.c) setCode(json.c);
         if (json.i) setInputs(json.i);
-      } catch (_) {}
+      } catch (_) { }
     }
   }, []);
 

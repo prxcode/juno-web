@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const buildPath = path.join(__dirname, 'build');
 
 const server = http.createServer((req, res) => {
-  if (req.url === '/runJava' && req.method === 'POST') {
+  if ((req.url === '/runJava' || req.url === '/api/runJava') && req.method === 'POST') {
     return runJavaHandler(req, res);
   }
 

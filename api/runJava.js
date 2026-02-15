@@ -1,90 +1,101 @@
-import { spawn, exec } from 'child_process';
-import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'fs';
-import { tmpdir } from 'os';
-import { join } from 'path';
-import { fileURLToPath } from 'url';
+import axios from 'axios';
 
-// Express-style handler function
-export async function runJavaHandler(req, res) {
-  if (req.method !== 'POST') {
-    res.writeHead(405, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+export default async function handler(req, res) {
+  // CORS wrappers for Vercel
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
 
-  let body = '';
-  req.on('data', chunk => body += chunk);
-  req.on('end', () => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method Not Allowed' });
+    return;
+  }
+
+  // Handle body parsing if needed (Vercel parses implicitly, but local server might not)
+  let body = req.body;
+
+  // If running in a raw Node http server (like server.js), we need to parse the body manually 
+  // if it hasn't been parsed yet. However, server.js currently passes (req, res).
+  // To keep it simple for both Vercel and local server.js:
+  // We'll rely on the fact that server.js might need to parse body before calling this 
+  // OR we implement a small body parser here if req.body is undefined.
+
+  if (!body && req.on) {
     try {
-      const { code, inputs } = JSON.parse(body);
-
-      if (!code || typeof code !== 'string') {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Missing Java code in request body' }));
-      }
-
-      if (!/public\s+class\s+Main\b/.test(code)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Java code must include: public class Main' }));
-      }
-
-      const workdir = mkdtempSync(join(tmpdir(), 'java-run-'));
-      const javaFile = join(workdir, 'Main.java');
-
-      writeFileSync(javaFile, code, 'utf8');
-
-      exec(`javac Main.java`, { cwd: workdir, timeout: 10000 }, (compileErr, _stdout, compileStderr) => {
-        if (compileErr) {
-          cleanup(workdir);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: compileStderr || compileErr.message }));
-        }
-
-        const child = spawn('java', ['-Xms32m', '-Xmx256m', 'Main'], { cwd: workdir });
-        let stdout = '';
-        let stderr = '';
-        let timedOut = false;
-
-        const timer = setTimeout(() => {
-          timedOut = true;
-          try { child.kill('SIGKILL'); } catch (e) {}
-        }, 8000);
-
-        child.stdout.on('data', d => stdout += d.toString());
-        child.stderr.on('data', d => stderr += d.toString());
-
-        child.on('close', code => {
-          clearTimeout(timer);
-          cleanup(workdir);
-
-          const payload = {};
-          if (timedOut) {
-            payload.error = 'Execution timed out.';
-          } else if (code !== 0) {
-            payload.error = stderr || `Exited with code ${code}`;
-          } else {
-            payload.output = stdout;
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify(payload));
-        });
-
-        // Feed standard input
-        if (Array.isArray(inputs) && inputs.length > 0) {
-          child.stdin.write(inputs.join('\n'));
-        }
-        child.stdin.end();
+      body = await new Promise((resolve, reject) => {
+        let data = '';
+        req.on('data', chunk => data += chunk);
+        req.on('end', () => resolve(JSON.parse(data)));
+        req.on('error', reject);
       });
-
     } catch (e) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'Invalid JSON or internal error.' }));
+      res.statusCode = 400;
+      res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      return;
     }
-  });
+  }
 
-  function cleanup(dir) {
-    try {
-      if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
-    } catch (_) {}
+  const { code, inputs } = body || {};
+
+  if (!code || typeof code !== 'string') {
+    res.statusCode = 400; // Use property assignment for raw Node response compatibility
+    const response = JSON.stringify({ error: 'Missing code' });
+    res.end ? res.end(response) : res.send(response);
+    return;
+  }
+
+  try {
+    const response = await axios.post('https://emkc.org/api/v2/piston/execute', {
+      language: 'java',
+      version: '15.0.2',
+      files: [
+        {
+          name: 'Main.java',
+          content: code,
+        },
+      ],
+      stdin: Array.isArray(inputs) ? inputs.join('\n') : inputs || '',
+    });
+
+    const { run, compile } = response.data;
+
+    let output = '';
+    let error = '';
+
+    // If compilation fails
+    if (compile && compile.code !== 0) {
+      error = compile.stderr || compile.output;
+    } else {
+      // Runtime output/error
+      output = run.stdout;
+      error = run.stderr;
+    }
+
+    // Create response payload
+    const payload = JSON.stringify({ output, error });
+
+    // Send response (compatible with both Express/Vercel-like objects and raw Node objects)
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end ? res.end(payload) : res.send(payload);
+
+  } catch (error) {
+    console.error('Piston API Error:', error.message);
+    const payload = JSON.stringify({ error: 'Failed to execute code via Piston API' });
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end ? res.end(payload) : res.send(payload);
   }
 }
+
+// Named export for local server.js compatibility if it imports { runJavaHandler }
+export { handler as runJavaHandler };
