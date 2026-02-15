@@ -143,7 +143,7 @@ export default function App() {
           </div>
 
           <footer>
-            © 2025 Developed by prxcode
+            © 2026 Developed by prxcode
           </footer>
         </div>
       </aside>
