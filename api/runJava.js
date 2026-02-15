@@ -15,6 +15,12 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Health check for browser visitation or status monitoring
+  if (req.method === 'GET') {
+    res.status(200).json({ status: 'Juno Compiler API Ready' });
+    return;
+  }
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
@@ -23,23 +29,18 @@ export default async function handler(req, res) {
   // Handle body parsing if needed (Vercel parses implicitly, but local server might not)
   let body = req.body;
 
-  // If running in a raw Node http server (like server.js), we need to parse the body manually 
-  // if it hasn't been parsed yet. However, server.js currently passes (req, res).
-  // To keep it simple for both Vercel and local server.js:
-  // We'll rely on the fact that server.js might need to parse body before calling this 
-  // OR we implement a small body parser here if req.body is undefined.
-
+  // Robust body parsing for raw Node servers
   if (!body && req.on) {
     try {
       body = await new Promise((resolve, reject) => {
         let data = '';
         req.on('data', chunk => data += chunk);
-        req.on('end', () => resolve(JSON.parse(data)));
+        req.on('end', () => resolve(data ? JSON.parse(data) : {}));
         req.on('error', reject);
       });
     } catch (e) {
       res.statusCode = 400;
-      res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      res.end(JSON.stringify({ error: 'Invalid JSON body' }));
       return;
     }
   }
@@ -47,7 +48,7 @@ export default async function handler(req, res) {
   const { code, inputs } = body || {};
 
   if (!code || typeof code !== 'string') {
-    res.statusCode = 400; // Use property assignment for raw Node response compatibility
+    res.statusCode = 400;
     const response = JSON.stringify({ error: 'Missing code' });
     res.end ? res.end(response) : res.send(response);
     return;
@@ -80,10 +81,8 @@ export default async function handler(req, res) {
       error = run.stderr;
     }
 
-    // Create response payload
     const payload = JSON.stringify({ output, error });
 
-    // Send response (compatible with both Express/Vercel-like objects and raw Node objects)
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     res.end ? res.end(payload) : res.send(payload);

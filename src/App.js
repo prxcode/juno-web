@@ -12,8 +12,8 @@ public class Main { //keep this as public class Main
 }
 `;
 
-// ✅ CHANGE THIS TO YOUR RENDER BACKEND URL
-const API_BASE = process.env.REACT_APP_API_BASE || '/api';
+// ✅ API Base URL (proxies to Vercel Serverless Function)
+const API_BASE = '/api';
 
 function toLines(s) {
   return (s || '').split(/\r?\n/);
