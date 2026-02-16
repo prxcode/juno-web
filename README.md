@@ -1,5 +1,4 @@
 # Juno - Online Java Compiler
-
 Juno is a lightweight and user-friendly **online Java compiler** built with React. It allows users to write, compile, and run Java code directly in the browser without needing any local setup.
 
 ---
@@ -27,11 +26,12 @@ Juno is a lightweight and user-friendly **online Java compiler** built with Reac
 ## Getting Started
 
 ### Prerequisites
+- Simply go to this URL: https://junocode.vercel.app/
+- However, it doesn't support scanner class
 
-- Node.js and npm installed on your machine
-- Backend compiler API (if applicable) running or accessible
 
-### Installation
+
+### Installation & Development
 
 1. Clone the repository:
 
@@ -48,11 +48,7 @@ Juno is a lightweight and user-friendly **online Java compiler** built with Reac
 3. Start the development server:
 
    ```bash
-   npm start
+   npm run dev
    ```
 
-4. Open your browser and navigate to:
 
-   ```
-   http://localhost:3000
-   ```
